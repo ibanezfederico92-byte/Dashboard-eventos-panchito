@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solo Eventos · Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root{color-scheme:light;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f1f5f9;color:#1e293b;font-size:14px;line-height:1.5;min-height:100vh;}
+
+/* HEADER */
+.header{background:#fff;border-bottom:1px solid #e2e8f0;padding:13px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;gap:12px;}
+.hrow{display:flex;align-items:center;gap:10px;}
+.logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#6366f1,#818cf8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.htitle{font-size:15px;font-weight:700;}
+.hsub{font-size:11px;color:#94a3b8;}
+.hright{display:flex;align-items:center;gap:10px;}
+.ts{font-size:11px;color:#cbd5e1;white-space:nowrap;}
+.refresh-btn{padding:5px 11px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;display:flex;align-items:center;gap:5px;transition:all .15s;}
+.refresh-btn:hover{border-color:#6366f1;color:#6366f1;}
+.refresh-btn.loading{opacity:.6;cursor:not-allowed;}
+
+/* FILTERS */
+.filters{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.fg{display:flex;align-items:center;gap:5px;}
+.fg label{font-size:11px;font-weight:600;color:#64748b;white-space:nowrap;}
+select{border:1px solid #e2e8f0;border-radius:6px;padding:5px 8px;font-size:12px;background:#f8fafc;color:#1e293b;cursor:pointer;outline:none;}
+select:focus{border-color:#6366f1;}
+.btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;}
+.btn-p{background:#6366f1;color:#fff;}
+.btn-p:hover{background:#4f46e5;}
+.btn-g{background:#f8fafc;color:#64748b;border:1px solid #e2e8f0;}
+.btn-g:hover{border-color:#6366f1;color:#6366f1;}
+
+/* MAIN */
+.main{padding:16px 20px;display:flex;flex-direction:column;gap:14px;max-width:1200px;margin:0 auto;}
+
+/* KPIS */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(max-width:660px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+.kl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+.kv{font-size:21px;font-weight:800;color:#1e293b;}
+.kv.ind{color:#6366f1;}.kv.grn{color:#16a34a;}.kv.red{color:#dc2626;}
+.ks{font-size:11px;color:#94a3b8;margin-top:3px;}
+
+/* CHARTS */
+.charts{display:grid;grid-template-columns:2fr 1fr;gap:12px;}
+@media(max-width:660px){.charts{grid-template-columns:1fr;}}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+.ct{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:14px;}
+.cb{position:relative;height:220px;}
+
+/* TABLE */
+.tcard{background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,.05);overflow:hidden;}
+.th{padding:12px 16px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;}
+.th h2{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;}
+.count-b{font-size:11px;color:#64748b;background:#f1f5f9;padding:3px 9px;border-radius:20px;border:1px solid #e2e8f0;}
+.tscroll{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:#f8fafc;padding:9px 14px;text-align:left;font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e2e8f0;white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:#6366f1;}
+tbody td{padding:9px 14px;border-bottom:1px solid #f1f5f9;font-size:13px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:#fafbfd;}
+.ename{font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.edate{color:#94a3b8;font-size:11px;white-space:nowrap;}
+.mono{font-weight:600;white-space:nowrap;font-size:12px;}
+.pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+.pill.pos{background:#dcfce7;color:#16a34a;}.pill.neg{background:#fee2e2;color:#dc2626;}.pill.zero{background:#fef9c3;color:#854d0e;}
+.mb{display:inline-block;padding:2px 6px;border-radius:5px;font-size:10px;font-weight:700;margin:1px;white-space:nowrap;}
+.mef{background:#dbeafe;color:#1e40af;}.mmp{background:#d1fae5;color:#065f46;}.mbb{background:#ede9fe;color:#5b21b6;}.msa{background:#fee2e2;color:#9f1239;}.mxx{background:#f1f5f9;color:#475569;}
+
+/* LOADING */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;gap:16px;color:#64748b;}
+.spinner{width:38px;height:38px;border:3px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:14px;color:#94a3b8;}
+
+/* ERROR */
+#error-box{display:none;max-width:520px;margin:60px auto;padding:28px;background:#fff;border:1px solid #fecaca;border-radius:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.err-icon{font-size:36px;margin-bottom:10px;}
+.err-title{font-size:16px;font-weight:700;color:#dc2626;margin-bottom:8px;}
+.err-body{font-size:13px;color:#64748b;line-height:1.6;margin-bottom:18px;}
+.err-steps{text-align:left;background:#f8fafc;border-radius:8px;padding:14px 16px;font-size:12px;color:#475569;line-height:1.8;}
+.err-steps b{color:#1e293b;}
+.retry-btn{margin-top:16px;padding:8px 20px;border-radius:8px;background:#6366f1;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;}
+.retry-btn:hover{background:#4f46e5;}
+
+#app{display:none;}
+.empty-row td{text-align:center;color:#94a3b8;padding:32px;}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando datos desde Google Sheets…</div>
+</div>
+
+<!-- ERROR -->
+<div id="error-box">
+  <div class="err-icon">⚠️</div>
+  <div class="err-title">No se pueden leer los datos</div>
+  <div class="err-body">
+    La planilla de Google Sheets no es pública todavía.<br>
+    Seguí estos pasos una sola vez:
+  </div>
+  <div class="err-steps">
+    <b>1.</b> Abrí la planilla <b>SOLO EVENTOS</b> en Google Sheets<br>
+    <b>2.</b> Hacé clic en <b>Archivo → Compartir → Compartir con otros</b><br>
+    <b>3.</b> Cambiá a <b>"Cualquier persona con el link → Lector"</b><br>
+    <b>4.</b> Guardá y volvé a abrir este dashboard
+  </div>
+  <button class="retry-btn" onclick="loadData()">↻ Reintentar</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="app">
+  <div class="header">
+    <div class="hrow">
+      <div class="logo">🎉</div>
+      <div>
+        <div class="htitle">Solo Eventos · Dashboard</div>
+        <div class="hsub">Seguimiento de eventos, ingresos y resultados</div>
+      </div>
+    </div>
+    <div class="hright">
+      <div class="ts" id="ts"></div>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadData()">↻ Actualizar</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="fg"><label>Año</label>
+      <select id="fY"><option value="">Todos</option></select>
+    </div>
+    <div class="fg"><label>Mes</label>
+      <select id="fM">
+        <option value="">Todos</option>
+        <option value="1">Enero</option><option value="2">Febrero</option>
+        <option value="3">Marzo</option><option value="4">Abril</option>
+        <option value="5">Mayo</option><option value="6">Junio</option>
+        <option value="7">Julio</option><option value="8">Agosto</option>
+        <option value="9">Septiembre</option><option value="10">Octubre</option>
+        <option value="11">Noviembre</option><option value="12">Diciembre</option>
+      </select>
+    </div>
+    <div class="fg"><label>Pago</label>
+      <select id="fP">
+        <option value="">Todos</option>
+        <option value="EFECTIVO">Efectivo</option>
+        <option value="MERCADO PAGO">Mercado Pago</option>
+        <option value="BBVA">BBVA</option>
+        <option value="SANTANDER">Santander</option>
+      </select>
+    </div>
+    <button class="btn btn-p" onclick="applyF()">Aplicar</button>
+    <button class="btn btn-g" onclick="resetF()">Limpiar</button>
+  </div>
+
+  <div class="main">
+    <div class="kpis">
+      <div class="kpi"><div class="kl">Eventos</div><div class="kv ind" id="kN">—</div><div class="ks">realizados</div></div>
+      <div class="kpi"><div class="kl">Ingresos Brutos</div><div class="kv" id="kI">—</div><div class="ks">facturación total</div></div>
+      <div class="kpi"><div class="kl">Gastos Totales</div><div class="kv" id="kG">—</div><div class="ks">costos de eventos</div></div>
+      <div class="kpi"><div class="kl">Ganancia Neta</div><div class="kv" id="kR">—</div><div class="ks" id="kMrg">margen</div></div>
+    </div>
+
+    <div class="charts">
+      <div class="card">
+        <div class="ct">📊 Ingresos y Ganancia por Mes</div>
+        <div class="cb"><canvas id="cMes"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ct">💳 Distribución por Método de Pago</div>
+        <div class="cb"><canvas id="cPago"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tcard">
+      <div class="th">
+        <h2>📋 Detalle de Eventos</h2>
+        <span class="count-b" id="cnt">—</span>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="sortBy('fecha')">Fecha ↕</th>
+              <th onclick="sortBy('desc')">Evento ↕</th>
+              <th onclick="sortBy('ingresos')">Ingresos ↕</th>
+              <th onclick="sortBy('gastos')">Gastos ↕</th>
+              <th onclick="sortBy('resultado')">Resultado ↕</th>
+              <th>Métodos de Pago</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+const SHEET_ID = '1dY3plbbwrthoc8vM-B8jMXU-tMxTpEQnODyUXzyMvLY';
+const CSV_URL  = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/export?format=csv&gid=0';
+const MESES    = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let ALL = [], filtered = [];
+let sortK = 'fecha', sortD = -1;
+let cM = null, cP = null;
+
+// ── CSV PARSER ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const row = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) {
+        row.push(cur.trim()); cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    row.push(cur.trim());
+    if (row.length > 1) rows.push(row);
+  }
+  return rows;
+}
+
+// ── AMOUNT PARSER (formato argentino: . = miles, , = decimal) ────────────────
+function parseMonto(s) {
+  if (!s) return null;
+  s = s.replace(/\\/g, '').trim();
+  if (!s || s === '-' || s === '—') return null;
+  const neg = s.includes('-') || s.includes('−');
+  s = s.replace(/[−\-$\s]/g, '').replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? null : (neg ? -n : n);
+}
+
+// ── FORMAT ARS ───────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  const s = Math.abs(n).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return (n < 0 ? '−' : '') + '$' + s;
+}
+
+// ── GROUP EVENTS ─────────────────────────────────────────────────────────────
+function groupEvents(rows) {
+  // rows[0] = header
+  const map = new Map();
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r[1] || r[1] === 'DESCRIPCION') continue;
+    const fecha  = (r[0] || '').trim();
+    const desc   = (r[1] || '').trim().toUpperCase();
+    const monto  = parseMonto(r[2]);
+    const metodo = (r[3] || '').trim().toUpperCase();
+    const mes    = parseInt(r[4]) || 0;
+    const año    = parseInt(r[5]) || 0;
+    const gastos = parseMonto(r[6]);
+    const result = parseMonto(r[7]);
+
+    if (!desc || !fecha) continue;
+
+    const key = fecha + '§' + desc;
+    if (!map.has(key)) {
+      map.set(key, { fecha, desc, mes, año, ingresos: 0, gastos: null, resultado: null, met: {} });
+    }
+    const ev = map.get(key);
+    if (monto !== null) ev.ingresos += monto;
+    if (gastos !== null && ev.gastos === null) ev.gastos = gastos;
+    if (result !== null && ev.resultado === null) ev.resultado = result;
+    if (metodo) ev.met[metodo] = (ev.met[metodo] || 0) + (monto || 0);
+  }
+  return [...map.values()].filter(e => e.ingresos > 0 || e.gastos !== null);
+}
+
+// ── FETCH DATA ───────────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('error-box').style.display = 'none';
+  const btn = document.getElementById('refreshBtn');
+  if (btn) { btn.classList.add('loading'); btn.textContent = '↻ Actualizando…'; }
+
+  try {
+    const res = await fetch(CSV_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    if (!text || text.includes('<html')) throw new Error('no-public');
+
+    const rows  = parseCSV(text);
+    ALL      = groupEvents(rows);
+    filtered = [...ALL];
+
+    populateYears();
+    doSort();
+    renderAll();
+
+    document.getElementById('ts').textContent =
+      'Actualizado: ' + new Date().toLocaleString('es-AR',
+        {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error-box').style.display = 'block';
+  } finally {
+    if (btn) { btn.classList.remove('loading'); btn.textContent = '↻ Actualizar'; }
+  }
+}
+
+// ── POPULATE YEAR FILTER ─────────────────────────────────────────────────────
+function populateYears() {
+  const sel = document.getElementById('fY');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>';
+  [...new Set(ALL.map(e => e.año))].filter(Boolean).sort().forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    if (String(y) === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+// ── FILTERS ──────────────────────────────────────────────────────────────────
+function applyF() {
+  const y = document.getElementById('fY').value;
+  const m = document.getElementById('fM').value;
+  const p = document.getElementById('fP').value;
+  filtered = ALL.filter(e => {
+    if (y && e.año !== parseInt(y)) return false;
+    if (m && e.mes !== parseInt(m)) return false;
+    if (p && !e.met[p]) return false;
+    return true;
+  });
+  doSort();
+  renderAll();
+}
+function resetF() {
+  document.getElementById('fY').value = '';
+  document.getElementById('fM').value = '';
+  document.getElementById('fP').value = '';
+  filtered = [...ALL];
+  doSort();
+  renderAll();
+}
+
+// ── SORT ─────────────────────────────────────────────────────────────────────
+function sortBy(k) {
+  sortD = (sortK === k) ? sortD * -1 : -1;
+  sortK = k;
+  doSort();
+  renderTable();
+}
+function doSort() {
+  filtered.sort((a, b) => {
+    let va = a[sortK], vb = b[sortK];
+    if (sortK === 'fecha') {
+      const day = s => parseInt((s||'').split('/')[0]) || 0;
+      va = a.año * 10000 + a.mes * 100 + day(a.fecha);
+      vb = b.año * 10000 + b.mes * 100 + day(b.fecha);
+    }
+    if (va === null || va === undefined) return 1;
+    if (vb === null || vb === undefined) return -1;
+    return (va > vb ? 1 : -1) * sortD;
+  });
+}
+
+// ── RENDER KPIs ──────────────────────────────────────────────────────────────
+function renderKPIs() {
+  const ing = filtered.reduce((s, e) => s + (e.ingresos || 0), 0);
+  const gas = filtered.reduce((s, e) => s + (e.gastos  || 0), 0);
+  const gan = filtered.reduce((s, e) => s + (e.resultado || 0), 0);
+  const mrg = ing > 0 ? (gan / ing * 100).toFixed(1) : 0;
+  document.getElementById('kN').textContent = filtered.length;
+  document.getElementById('kI').textContent = fmt(ing);
+  document.getElementById('kG').textContent = fmt(gas);
+  const kR = document.getElementById('kR');
+  kR.textContent = fmt(gan);
+  kR.className = 'kv ' + (gan >= 0 ? 'grn' : 'red');
+  document.getElementById('kMrg').textContent = mrg + '% margen neto';
+}
+
+// ── RENDER CHART MESES ───────────────────────────────────────────────────────
+function renderChartMes() {
+  const byM = {};
+  filtered.forEach(e => {
+    const k = e.año + '-' + String(e.mes).padStart(2, '0');
+    if (!byM[k]) byM[k] = { lbl: MESES[e.mes] + ' ' + String(e.año).slice(2), ing: 0, gan: 0 };
+    byM[k].ing += (e.ingresos  || 0);
+    byM[k].gan += (e.resultado || 0);
+  });
+  const keys   = Object.keys(byM).sort();
+  const labels = keys.map(k => byM[k].lbl);
+  const ing    = keys.map(k => byM[k].ing);
+  const gan    = keys.map(k => byM[k].gan);
+  if (cM) cM.destroy();
+  cM = new Chart(document.getElementById('cMes'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'Ingresos', data:ing, backgroundColor:'rgba(99,102,241,.18)', borderColor:'#6366f1', borderWidth:1.5, borderRadius:3, order:2 },
+        { label:'Ganancia', data:gan,
+          backgroundColor: gan.map(v => v >= 0 ? 'rgba(22,163,74,.7)' : 'rgba(220,38,38,.7)'),
+          borderColor:      gan.map(v => v >= 0 ? '#16a34a' : '#dc2626'),
+          borderWidth:1.5, borderRadius:3, order:1 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { position:'top', labels:{ font:{size:11}, boxWidth:11, padding:8 } },
+        tooltip: { callbacks: { label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) } }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:10}} },
+        y: { grid:{color:'#f1f5f9'}, ticks:{ font:{size:10},
+          callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+        }}
+      }
+    }
+  });
+}
+
+// ── RENDER CHART PAGO ────────────────────────────────────────────────────────
+function renderChartPago() {
+  const byP = {};
+  filtered.forEach(e => {
+    Object.entries(e.met).forEach(([m, a]) => { if (m) byP[m] = (byP[m] || 0) + a; });
+  });
+  const COLORS = { EFECTIVO:'#3b82f6', 'MERCADO PAGO':'#10b981', BBVA:'#8b5cf6', SANTANDER:'#ef4444' };
+  const labels = Object.keys(byP);
+  const data   = labels.map(l => byP[l]);
+  if (cP) cP.destroy();
+  if (!labels.length) return;
+  cP = new Chart(document.getElementById('cPago'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:labels.map(l=>COLORS[l]||'#f59e0b'), borderWidth:2, borderColor:'#fff', hoverOffset:5 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'60%',
+      plugins:{
+        legend:{ position:'bottom', labels:{ font:{size:11}, boxWidth:11, padding:8 } },
+        tooltip:{ callbacks:{ label: c => {
+          const tot = data.reduce((a,b) => a+b, 0);
+          return ' ' + fmt(c.raw) + ' (' + (c.raw/tot*100).toFixed(1) + '%)';
+        }}}
+      }
+    }
+  });
+}
+
+// ── RENDER TABLE ─────────────────────────────────────────────────────────────
+function mcls(m) {
+  return { EFECTIVO:'mef', 'MERCADO PAGO':'mmp', BBVA:'mbb', SANTANDER:'msa' }[m] || 'mxx';
+}
+function renderTable() {
+  document.getElementById('cnt').textContent = filtered.length + ' eventos';
+  const tb = document.getElementById('tbody');
+  if (!filtered.length) {
+    tb.innerHTML = '<tr class="empty-row"><td colspan="6">Sin eventos para los filtros seleccionados.</td></tr>';
+    return;
+  }
+  tb.innerHTML = filtered.map(e => {
+    const r  = e.resultado;
+    const pc = r === null ? 'zero' : r > 0 ? 'pos' : r < 0 ? 'neg' : 'zero';
+    const bgs = Object.entries(e.met).filter(([m]) => m)
+      .map(([m, a]) => '<span class="mb ' + mcls(m) + '">' + m + ' ' + fmt(a) + '</span>').join('');
+    return '<tr>'
+      + '<td class="edate">'                    + e.fecha + '</td>'
+      + '<td><div class="ename" title="' + e.desc + '">' + e.desc + '</div></td>'
+      + '<td class="mono">'                     + fmt(e.ingresos)  + '</td>'
+      + '<td class="mono">'                     + fmt(e.gastos)    + '</td>'
+      + '<td><span class="pill ' + pc + '">'    + (r !== null ? fmt(r) : '—') + '</span></td>'
+      + '<td>' + (bgs || '<span style="color:#cbd5e1;font-size:11px">—</span>') + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ── RENDER ALL ───────────────────────────────────────────────────────────────
+function renderAll() {
+  renderKPIs();
+  renderChartMes();
+  renderChartPago();
+  renderTable();
+}
+
+// ── START ────────────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
